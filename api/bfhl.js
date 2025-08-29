@@ -94,7 +94,7 @@ app.get("/bfhl", (_req, res) => {
 // Health-check route at "/"
 app.get("/", (_req, res) => {
   res.status(200).json({
-    message: "🚀 BFHL API is up and running",
+    message: "BFHL API is up and running",
     endpoints: {
       POST: "/bfhl (main logic)",
       GET: "/bfhl (simple check)",
