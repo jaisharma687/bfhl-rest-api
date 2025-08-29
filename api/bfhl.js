@@ -1,38 +1,44 @@
 import express from "express";
-import serverless from "serverless-http";
 
 const app = express();
 app.use(express.json());
 
-// ==== Your details ====
-const USER_FULL_NAME = "jai_sharma";
-const DOB = "17091999";
+// ==== Your details (customize if needed) ====
+const USER_FULL_NAME = "jai_sharma"; // always lowercase, as per spec
+const DOB = "27102003";              // ddmmyyyy format (example DOB, replace if required)
 const EMAIL = "jai.sharma2022@vitstudent.ac.in";
 const ROLL_NUMBER = "22BCE3969";
-// ======================
+// ===========================================
 
+// Helper that processes the input array into the required pieces
 function processArray(data) {
   const evenNumbers = [];
   const oddNumbers = [];
   const alphabets = [];
   const specialChars = [];
   let sum = 0;
-  let allAlphabetChars = "";
+  let allAlphabetChars = ""; // stash all letters to build fancy reverse+alternating caps string later
 
   for (const item of data) {
-    const s = String(item);
+    const s = String(item); // normalize everything into string, so 1 and "1" behave the same
+
     if (/^-?\d+$/.test(s)) {
+      // It's a number (positive/negative, doesn't matter)
       const num = parseInt(s, 10);
-      (num % 2 === 0 ? evenNumbers : oddNumbers).push(s);
+      (num % 2 === 0 ? evenNumbers : oddNumbers).push(s); // store as string
       sum += num;
     } else if (/^[a-zA-Z]+$/.test(s)) {
-      alphabets.push(s.toUpperCase());
-      allAlphabetChars += s;
+      // It's pure alphabetic
+      alphabets.push(s.toUpperCase()); // spec wants uppercase
+      allAlphabetChars += s; // keep original chars to build concat string
     } else {
+      // Anything else is considered "special"
       specialChars.push(s);
     }
   }
 
+  // Build concatenation string:
+  // Reverse all collected letters, then alternate uppercase/lowercase
   const concatString = allAlphabetChars
     .split("")
     .reverse()
@@ -49,17 +55,21 @@ function processArray(data) {
   };
 }
 
+// POST endpoint -> the main API route
 app.post("/bfhl", (req, res) => {
   try {
     const { data } = req.body;
+
     if (!Array.isArray(data)) {
+      // validation fail
       return res.status(400).json({
         is_success: false,
-        message: "Invalid input. 'data' must be an array",
+        message: "Invalid input. 'data' should be an array of stuff (numbers/letters/etc.)",
       });
     }
 
     const result = processArray(data);
+
     return res.status(200).json({
       is_success: true,
       user_id: `${USER_FULL_NAME}_${DOB}`,
@@ -68,18 +78,32 @@ app.post("/bfhl", (req, res) => {
       ...result,
     });
   } catch (err) {
-    console.error("Error:", err);
+    console.error("🔥 Error processing request:", err);
     return res.status(500).json({
       is_success: false,
-      message: "Internal server error",
+      message: "Something went wrong on the server",
     });
   }
 });
 
-// Optional GET route
-app.get("/bfhl", (req, res) => {
-  res.json({ operation_code: 1 });
+// A lightweight GET endpoint just to prove the API is alive
+app.get("/bfhl", (_req, res) => {
+  res.status(200).json({ operation_code: 1 });
 });
 
-// Wrap for Vercel
-export default serverless(app);
+// Health-check route at "/"
+app.get("/", (_req, res) => {
+  res.status(200).json({
+    message: "🚀 BFHL API is up and running",
+    endpoints: {
+      POST: "/bfhl (main logic)",
+      GET: "/bfhl (simple check)",
+    },
+  });
+});
+
+// Vercel handler: export default a function (req, res)
+export default function handler(req, res) {
+  // Let Express handle the request
+  app(req, res);
+}
